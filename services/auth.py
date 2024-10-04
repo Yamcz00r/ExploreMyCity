@@ -20,6 +20,7 @@ class User(Base):
     created_at = mapped_column(Date, default=func.now())
 
 
+
 def generate_uuid():
     return str(uuid4())
 
