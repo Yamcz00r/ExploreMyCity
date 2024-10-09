@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, File, UploadFile, Header
+from typing import Annotated
 from starlette import status
 
-from services.auth import create_user, authenticate_user
+from services.auth import create_user, authenticate_user, upload_profile
 from data_models.user import RegisterData, RegisterResponse, LoginResponse, LoginData
 
 router = APIRouter()
@@ -22,6 +23,16 @@ async def register_user(data: RegisterData):
         )
     return user_info
 
+
+@router.post("/upload_photo")
+async def upload_photo(file: UploadFile | None, authorization: Annotated[str | None, Header()] = None):
+    if authorization is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied")
+    token = authorization.split(" ")[1]
+    new_name = await upload_profile(file, token)
+    return {
+        "message": "Successfully uploaded",
+    }
 
 @router.post("/login", response_model=LoginResponse)
 async def login(data: LoginData):
