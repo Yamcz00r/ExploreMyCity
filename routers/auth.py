@@ -1,13 +1,21 @@
-from fastapi import APIRouter, HTTPException, File, UploadFile, Header
+from fastapi import APIRouter, HTTPException, UploadFile, Header, Depends
 from typing import Annotated
 from starlette import status
-
-from services.auth import create_user, authenticate_user, upload_profile
-from data_models.user import RegisterData, RegisterResponse, LoginResponse, LoginData
-
+from jwt_token import JWT_SECRET, ALGORITHM
+from services.auth import create_user, authenticate_user, upload_profile, update_profile_picture, update_username, update_email
+from data_models.user import RegisterData, RegisterResponse, LoginResponse, LoginData, UpdateUsernameData, UpdateEmail
+from jwt import decode
 router = APIRouter()
 
-
+async def get_user_id(authorization: Annotated[str | None, Header()] = None):
+    if authorization is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied")
+    token = authorization.split(" ")[1]
+    try:
+        payload = decode(token, JWT_SECRET, ALGORITHM)
+        return payload["uuid"]
+    except:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied")
 @router.post("/register", response_model=RegisterResponse)
 async def register_user(data: RegisterData):
     user_info = create_user(
@@ -23,15 +31,36 @@ async def register_user(data: RegisterData):
         )
     return user_info
 
-
+@router.get("/read")
+async def read_active_user(uuid: Annotated[str, Depends(get_user_id)]):
+    return {
+        "uuid": uuid
+    }
 @router.post("/upload_photo")
-async def upload_photo(file: UploadFile | None, authorization: Annotated[str | None, Header()] = None):
-    if authorization is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied")
-    token = authorization.split(" ")[1]
-    new_name = await upload_profile(file, token)
+async def upload_photo(file: UploadFile | None, uuid: Annotated[str, Depends(get_user_id)]):
+    await upload_profile(file, uuid)
     return {
         "message": "Successfully uploaded",
+    }
+@router.put("/update/photo")
+async def update_photo(file: UploadFile | None, uuid: Annotated[str, Depends(get_user_id)]):
+    await update_profile_picture(file, uuid)
+    return {
+        "message": "Successfully updated"
+    }
+
+@router.put("/update/username")
+async def update_user_name(data: UpdateUsernameData, uuid: Annotated[str, Depends(get_user_id)]):
+    update_username(data.username, uuid)
+    return {
+        "message": "Successfully updated"
+    }
+
+@router.put("/update/email")
+async def update_user_email(data: UpdateEmail, uuid: Annotated[str, Depends(get_user_id)]):
+    update_email(data.email, uuid)
+    return {
+        "message": "Successfully updated"
     }
 
 @router.post("/login", response_model=LoginResponse)
