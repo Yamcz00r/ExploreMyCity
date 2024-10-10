@@ -51,6 +51,18 @@ class LoginData(BaseModel):
             raise ValueError("Password must be at least 8 characters")
         return v
 
+class UpdateUsernameData(BaseModel):
+    username: str
+
+class UpdateEmail(BaseModel):
+    email: str
+    @field_validator('email')
+    def validate_email(cls, v):
+        pattern = r"^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$"
+        if not re.match(pattern, v):
+            raise ValueError("Invalid email")
+        return v
+
 class RegisterResponse(BaseModel):
     uuid: str
     token: str
