@@ -1,4 +1,3 @@
-from googleapiclient.channel import new_webhook_channel
 from sqlalchemy import select, delete
 from schemas import user_schema, place_schema, review_schema
 from fastapi import HTTPException, UploadFile
@@ -8,7 +7,6 @@ from starlette import status
 from utilities.utils import get_user_by_id, get_place_by_id, generate_uuid
 from firebase_utils import firebase_app
 from firebase_admin import storage
-
 
 def find_review_by_id(review_id: str, s: Session) -> review_schema.Review:
     with Session(engine) as s:
@@ -68,6 +66,20 @@ def update_review_rating(user_id: str, review_id: str, new_rating: int) -> str:
         except:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Something went wrong")
 
+def delete_review(user_id: str, review_id: str) -> str:
+    with Session(engine) as s:
+        user = get_user_by_id(user_id, s)
+        review = find_review_by_id(review_id, s)
+        try:
+            if review.author_id != user_id:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Permission Denied")
+            s.execute(delete(review))
+            s.commit()
+            return review_id
+        except:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Something went wrong")
+
+
 async def update_review_picture(file: UploadFile | None, user_id: str, review_id: str) -> str:
     if file is None:
         return
@@ -112,4 +124,3 @@ async def update_review_picture_operation(file: UploadFile | None, filename: str
         new_blob.upload_from_string(await file.read(), content_type=file.content_type)
     except:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Failed to upload photo")
-

@@ -26,3 +26,6 @@ def get_place_by_id(place_id: str, s: Session) -> place_schema.Place:
         return place
     except:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_ERROR, detail="Something went wrong!")
+
+
+# Functions get_user_by_id and get_place_by_id in project are mainly used for checking if the particular instance of it exists in database
