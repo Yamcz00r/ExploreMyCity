@@ -1,5 +1,5 @@
 from sqlalchemy import select, delete
-from schemas import user_schema, place_schema, review_schema
+from schemas import  review_schema
 from fastapi import HTTPException, UploadFile
 from utilities.db import engine
 from sqlalchemy.orm import Session
@@ -9,34 +9,29 @@ from firebase_utils import firebase_app
 from firebase_admin import storage
 
 def find_review_by_id(review_id: str, s: Session) -> review_schema.Review:
-    with Session(engine) as s:
-        try:
-            review = s.scalars(select(review_schema.Review).where(review_schema.Review.id == review_id)).one_or_none()
-            if review is None:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review does not exist")
-            return review
-        except:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Something went wrong")
+    try:
+        review = s.scalars(select(review_schema.Review).where(review_schema.Review.id == review_id)).one_or_none()
+        if review is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review does not exist")
+        return review
+    except:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Something went wrong")
 
-async def create_review(user_id: str, place_id: str, rating: int, file: UploadFile | None, content: str) -> str:
-    filename = None
+async def create_review(user_id: str, place_id: str, rating: int, content: str) -> str:
     new_uuid = generate_uuid()
     with Session(engine) as s:
         user = get_user_by_id(user_id, s)
         place = get_place_by_id(place_id, s)
         try:
-            if file is not None:
-                filename = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
             review = review_schema.Review(
                 id=new_uuid,
                 rating=rating,
                 content=content,
-                media_content=filename,
+                media_content=None,
                 author=user_id,
                 place_id=place_id
             )
             s.add(review)
-            await upload_review_picture(file, filename)
             s.commit()
             return new_uuid
         except:
@@ -73,54 +68,36 @@ def delete_review(user_id: str, review_id: str) -> str:
         try:
             if review.author_id != user_id:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Permission Denied")
-            s.execute(delete(review))
+            stmt = delete(review_schema.Review).where(review_schema.Review.id == review_id)
+            s.execute(stmt)
             s.commit()
             return review_id
         except:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Something went wrong")
 
-
-async def update_review_picture(file: UploadFile | None, user_id: str, review_id: str) -> str:
-    if file is None:
-        return
+async def upload_review_picture(file: UploadFile | None, user_id: str, review_id: str):
+    bucket = storage.bucket(app=firebase_app)
     with Session(engine) as s:
+        review = s.scalars(select(review_schema.Review).where(review_schema.Review.id == review_id)).one_or_none()
+        if review is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review does not exist")
+        if user_id != review.author_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission Denied")
         try:
-            user = get_user_by_id(user_id, s)
-            review = find_review_by_id(review_id, s)
-            filename = None
-            if review.author_id != user_id:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Permission Denied")
             if review.media_content is None:
                 filename = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
-                await upload_review_picture(file, filename)
-            else:
-                filename = review.media_content
+                blob = bucket.blob(f"review_pictures/{filename}")
+                blob.upload_from_string(await file.read(), content_type=file.content_type)
+                review.media_content = filename
+            elif review.media_content is not None:
                 new_filename = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
-                await update_review_picture_operation(file, filename, new_filename)
+                old_blob = bucket.blob(f"review_pictures/{review.media_content}")
+                old_blob.delete()
+                new_blob = bucket.blob(f"review_pictures/{new_filename}")
+                new_blob.upload_from_string(await file.read(), content_type=file.content_type)
                 review.media_content = new_filename
-                s.commit()
-                return review_id
+            s.commit()
+            return review_id
         except:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Something went wrong")
 
-async def upload_review_picture(file: UploadFile | None, filename: str):
-    try:
-        if file is None:
-            return
-        bucket = storage.bucket(app=firebase_app)
-        blob = bucket.blob(f"review_pictures/{filename}")
-        blob.upload_from_string(await file.read(), content_type=file.content_type)
-    except:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload photo")
-
-async def update_review_picture_operation(file: UploadFile | None, filename: str, new_filename: str):
-    try:
-        if file is None:
-            return
-        bucket = storage.bucket(app=firebase_app)
-        blob = bucket.blob(f"review_pictures/{filename}")
-        blob.delete()
-        new_blob = bucket.blob(f"review_pictures/{new_filename}")
-        new_blob.upload_from_string(await file.read(), content_type=file.content_type)
-    except:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL, detail="Failed to upload photo")

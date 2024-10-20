@@ -19,7 +19,7 @@ def create_favorite(place_id: str, user_id: str) -> str:
         except:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong")
 
-def delete_favorite(user_id: str, favorite_id) -> str:
+def delete_favorite(user_id: str, favorite_id: str) -> str:
     with Session(engine) as s:
         user = get_user_by_id(user_id, s)
         try:

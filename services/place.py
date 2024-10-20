@@ -7,10 +7,10 @@ from schemas.place_schema import Place
 from utilities.db import engine
 from uuid import uuid4
 from utilities.utils import get_place_by_id
+
+
 def generate_uuid():
     return str(uuid4())
-
-
 
 def read_place_by_id(place_id):
     with Session(engine) as s:
@@ -37,6 +37,7 @@ def create_place(place_data, uuid):
             )
             s.add(new_place)
             s.commit()
+            return new_uuid
         except:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong")
 
@@ -96,35 +97,25 @@ def delete_place(place_id, user_id):
         s.commit()
         return place_id
 
-async def upload_photo_for_place(file: UploadFile, uuid: str):
-    bucket = storage.bucket(app=firebase_app)
-    new_file_name = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
-    with Session(engine) as s:
-        try:
-            place = get_place_by_id(uuid, s)
-            blob = bucket.blob(f"place_pictures/{new_file_name}")
-            blob.upload_from_string(await file.read(), content_type=file.content_type)
-            place.picture = new_file_name
-            s.commit()
-        except:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong")
-
-async def update_place_photo(file: UploadFile, place_id, user_id):
+async def upload_photo_for_place(place_id: str, file: UploadFile, user_id: str):
     bucket = storage.bucket(app=firebase_app)
     with Session(engine) as s:
         place = get_place_by_id(place_id, s)
-        if place.picture is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No photo to change")
-        if place.author_id != user_id:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Permission denied")
+        if user_id == place.author_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
         try:
-            blob = bucket.blob(f"plcae_pictures/{place.picture}")
-            blob.delete()
-            new_file_name = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
-            new_blob = bucket.blob(f"place_pictures/{new_file_name}")
-            new_blob.upload_from_string(await file.read(), content_type=file.content_type)
-            place.picture = new_file_name
+            if place.picture is None:
+                new_file_name = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
+                blob = bucket.blob(f"place_pictures/{new_file_name}")
+                blob.upload_from_string(await file.read(), content_type=file.content_type)
+                place.picture = new_file_name
+            elif place.picture is not None:
+                new_file_name = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
+                blob = bucket.blob(f"place_pictures/{place.picture}")
+                blob.delete()
+                new_blob = bucket.blob(f"place_pictures/{new_file_name}")
+                new_blob.upload_from_string(await file.read(), content_type=file.content_type)
+                place.picture = new_file_name
             s.commit()
         except:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong")
-
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="We cannot upload the photo. Sorry")
