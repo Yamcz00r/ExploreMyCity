@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from services.tags import create_tag, delete_tag, find_tag_by_name
 from data_models.tags import DataTag
 
@@ -6,7 +6,7 @@ router = APIRouter()
 
 @router.post('/create')
 def add_tag(data: DataTag):
-    new_uuid = create_tag(place_id=data.place_id, name=data.name)
+    new_uuid = create_tag(name=data.name)
     return {
         "uuid": new_uuid
     }

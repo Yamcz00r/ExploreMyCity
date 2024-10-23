@@ -32,3 +32,8 @@ def delete_favorite(user_id: str, favorite_id: str) -> str:
             s.commit()
         except:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong")
+
+def get_user_favorites_places(user_id: str):
+    with Session(engine) as s:
+        user = get_user_by_id(user_id, s)
+        return user.favorites

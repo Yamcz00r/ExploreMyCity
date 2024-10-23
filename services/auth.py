@@ -101,7 +101,6 @@ async def update_profile_picture(file: UploadFile, uuid: str):
         user.filename = new_file_name
         s.commit()
 
-#TODO: CREATE THE EMAIL AND PASSWORD CHANGE
 async def upload_profile(file: UploadFile | None, uuid: str):
     if file is None:
         return

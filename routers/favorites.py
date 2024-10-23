@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from services.favorites import create_favorite, delete_favorite
+from services.favorites import create_favorite, delete_favorite, get_user_favorites_places
 from utilities.auth import get_user_id
 from typing import Annotated
 
@@ -16,4 +16,10 @@ def remove_favorite(user_id: Annotated[str, Depends(get_user_id)], favorite_id: 
     deleted_id = delete_favorite(user_id=user_id, favorite_id=favorite_id)
     return {
         "uuid": deleted_id
+    }
+@router.get("/user")
+def get_user_favorites(user_id: Annotated[str, Depends(get_user_id)]):
+    users_favorites = get_user_favorites_places(user_id=user_id)
+    return {
+        "favorites": users_favorites
     }

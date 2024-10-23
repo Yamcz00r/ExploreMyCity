@@ -4,11 +4,10 @@ from fastapi import HTTPException
 from utilities.db import engine
 from sqlalchemy.orm import Session
 from starlette import status
-from utilities.utils import get_place_by_id, generate_uuid
+from utilities.utils import generate_uuid
 
-def create_tag(place_id: str, name: str) -> str:
+def create_tag(name: str) -> str:
     with Session(engine) as s:
-        place = get_place_by_id(place_id, s)
         new_uuid = generate_uuid()
         try:
             existing_tag = s.scalars(select(Tag).where(Tag.name == name)).one_or_none()
@@ -29,7 +28,8 @@ def delete_tag(tag_id: str) -> str:
             s.execute(delete(Tag).where(Tag.id == tag_id))
             s.commit()
             return tag_id
-        except:
+        except Exception as e:
+            print(e)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Something went wrong")
 
 

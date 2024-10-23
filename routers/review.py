@@ -32,8 +32,8 @@ def update_rating(data: ReviewUpdateRating, user_id: Annotated[str, Depends(get_
         "uuid": updated_review_id,
     }
 @router.delete("/delete/{review_id}")
-def delete_review_operation(user_id: Annotated[str, Depends(get_user_id)], review_id: str):
-    deleted_id = delete_review(user_id=user_id, review_id=review_id)
+async def delete_review_operation(user_id: Annotated[str, Depends(get_user_id)], review_id: str):
+    deleted_id = await delete_review(user_id=user_id, review_id=review_id)
     return {
         "uuid": deleted_id
     }

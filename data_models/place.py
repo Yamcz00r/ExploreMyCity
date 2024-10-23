@@ -5,10 +5,12 @@ class PlaceData(BaseModel):
     lat: float
     long: float
     description: str
+    website_url: str
+    days: str
     category: str
     opening: str
     closing: str
-    author_id: str
+    tags: list[str]
 
 class UpdatePlace(BaseModel):
     place_id: str
