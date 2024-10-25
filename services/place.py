@@ -70,7 +70,6 @@ def create_place(place_data, uuid):
                 detail="Something went wrong",
             )
 
-
 def update_place_name(new_name, place_id, user_id):
     with Session(engine) as s:
         place = get_place_by_id(place_id, s)
