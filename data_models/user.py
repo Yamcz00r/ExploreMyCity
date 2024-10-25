@@ -9,6 +9,7 @@ class RegisterData(BaseModel):
     password: str
     username: str
     birth_date: str
+    city: str
 
     @field_validator("email")
     def validate_email(cls, v):
@@ -35,6 +36,7 @@ class RegisterData(BaseModel):
             raise ValueError("Birth date cannot be empty")
         return v
 
+
 class LoginData(BaseModel):
     email: str
     password: str
@@ -45,27 +47,33 @@ class LoginData(BaseModel):
         if not re.match(pattern, v):
             raise ValueError("Invalid email")
         return v
+
     @field_validator("password")
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
         return v
 
+
 class UpdateUsernameData(BaseModel):
     username: str
 
+
 class UpdateEmail(BaseModel):
     email: str
-    @field_validator('email')
+
+    @field_validator("email")
     def validate_email(cls, v):
         pattern = r"^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$"
         if not re.match(pattern, v):
             raise ValueError("Invalid email")
         return v
 
+
 class RegisterResponse(BaseModel):
     uuid: str
     token: str
+
 
 class LoginResponse(BaseModel):
     token: str

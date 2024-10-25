@@ -59,19 +59,4 @@ def create_tag_if_not_exist(name: str, s: Session) -> tags_schema.Tag:
         )
 
 
-def haversine(user_lat: float, user_long: float, lat: float, long: float) -> float:
-    R = 6371
-    d_lat = math.radians(lat - user_lat)
-    d_lon = math.radians(long - user_long)
-    a = (
-        math.sin(d_lat / 2) ** 2
-        + math.cos(math.radians(user_lat))
-        * math.cos(math.radians(lat))
-        * math.sin(d_lon / 2) ** 2
-    )
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    distance = R * c
-    return distance
-
-
 # Functions get_user_by_id and get_place_by_id in project are mainly used for checking if the particular instance of it exists in database

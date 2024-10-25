@@ -1,4 +1,4 @@
-from utilities.db import  engine
+from utilities.db import engine
 from jwt_token import JWT_SECRET, ALGORITHM
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -7,23 +7,27 @@ import bcrypt
 import jwt
 from fastapi import HTTPException, UploadFile
 from uuid import uuid4
-from firebase_admin import  storage
+from firebase_admin import storage
 from firebase_utils import firebase_app
 from schemas.user_schema import User
+from utilities.utils import get_user_by_id
 
 
-#TODO: Finish the firebase storage integration
+# TODO: Finish the firebase storage integration
 def generate_uuid():
     return str(uuid4())
+
 
 def decode_user_token(token: str) -> str:
     decoded_token = jwt.decode(token, JWT_SECRET, algorithms=[ALGORITHM])
     return decoded_token["uuid"]
 
+
 def encrypt_password(password):
     p_bytes = password.encode("utf-8")
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(p_bytes, salt).decode("utf-8")
+
 
 def check_username(username):
     with Session(engine) as s:
@@ -33,6 +37,7 @@ def check_username(username):
         else:
             return False
 
+
 def check_email(email):
     with Session(engine) as s:
         user = s.scalars(select(User).where(User.email == email)).one_or_none()
@@ -41,14 +46,20 @@ def check_email(email):
         else:
             return False
 
-def create_user(email, username, password, birth_date):
+
+def create_user(email, username, password, birth_date, city):
     with Session(engine) as s:
         is_email_unique = check_email(email)
         is_username_unique = check_username(username)
         if not is_email_unique:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
+            )
         if not is_username_unique:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="User with this username already registered")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="User with this username already registered",
+            )
 
         encrypted_password = encrypt_password(password)
         new_uuid = generate_uuid()
@@ -58,41 +69,66 @@ def create_user(email, username, password, birth_date):
             password=encrypted_password,
             username=username,
             birth_date=birth_date,
-            filename=None
+            city=city,
+            filename=None,
         )
         s.add(new_user)
         s.commit()
         token = jwt.encode({"uuid": new_user.id}, JWT_SECRET, algorithm=ALGORITHM)
-        return { "uuid": new_user.id, "token": token }
+        return {"uuid": new_user.id, "token": token}
+
 
 def update_username(username: str, uuid: str):
     with Session(engine) as s:
         if check_username(username) is False:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already registered")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username already registered",
+            )
         user = s.scalars(select(User).where(User.id == uuid)).one_or_none()
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
         user.username = username
         s.commit()
+
+
+def update_user_city(user_id: str, city: str):
+    with Session(engine) as s:
+        user = get_user_by_id(user_id, s)
+        user.city = city
+        s.commit()
+        return user_id
+
 
 def update_email(email: str, uuid: str):
     with Session(engine) as s:
         if check_email(email) is False:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="Email already registered"
+            )
         user = s.scalars(select(User).where(User.id == uuid)).one_or_none()
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
         user.email = email
         s.commit()
+
 
 async def update_profile_picture(file: UploadFile, uuid: str):
     bucket = storage.bucket(app=firebase_app)
     with Session(engine) as s:
         user = s.scalars(select(User).where(User.id == uuid)).one_or_none()
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+            )
         if user.filename is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No photo to change")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No photo to change"
+            )
         blob = bucket.blob(f"profile_pictures/{user.filename}")
         blob.delete()
         new_file_name = f"{generate_uuid()}.{file.filename.split('.')[-1]}"
@@ -100,6 +136,7 @@ async def update_profile_picture(file: UploadFile, uuid: str):
         new_blob.upload_from_string(await file.read(), content_type=file.content_type)
         user.filename = new_file_name
         s.commit()
+
 
 async def upload_profile(file: UploadFile | None, uuid: str):
     if file is None:
@@ -113,14 +150,19 @@ async def upload_profile(file: UploadFile | None, uuid: str):
         user.filename = new_file_name
         s.commit()
 
+
 def authenticate_user(email, password):
     with Session(engine) as s:
         user = s.scalars(select(User).where(User.email == email)).one_or_none()
         if user is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email not registered")
-        p_bytes = password.encode('utf-8')
-        hashed_stored_password = user.password.encode('utf-8')
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Email not registered"
+            )
+        p_bytes = password.encode("utf-8")
+        hashed_stored_password = user.password.encode("utf-8")
         if bcrypt.checkpw(p_bytes, hashed_password=hashed_stored_password) is not True:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password"
+            )
         token = jwt.encode({"uuid": user.id}, JWT_SECRET, algorithm=ALGORITHM)
         return token
