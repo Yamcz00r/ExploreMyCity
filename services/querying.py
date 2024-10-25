@@ -1,51 +1,49 @@
-from schemas.place_schema import Place
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+from schemas.place_schema import Place
 from utilities.db import engine
+from utilities.utils import get_user_by_id
+from requests import get
 
 
-def search_place_by_name(name: str, skip: int = 0, limit: int = 10):
+def find_places_by_city(user_id: str):
     with Session(engine) as s:
-        stmt = select(Place).where(Place.name.like(f"%{name}%"))
-        stmt.offset(skip).limit(limit)
-        places = list(s.scalars(stmt).all())
+        user = get_user_by_id(user_id, s)
+        places = list(s.scalars(select(Place).where(Place.city == user.city)).all())
         return places
 
 
-def search_place_by_category(
-    category: str, skip: int = 0, limit: int = 10, rating_dsc: bool = True
-):
+def query_places_by_name(name: str, user_id: str):
     with Session(engine) as s:
-        stmt = select(Place).where(Place.category == category)
-        stmt.offset(skip).limit(limit)
-        places = list(s.scalars(stmt).all())
-        sorted_places = places.sort(
-            key=lambda place: place["rating"], reverse=rating_dsc
+        user = get_user_by_id(user_id, s)
+        places = list(
+            s.scalars(
+                select(Place).where(Place.name == name) and (Place.city == user.city)
+            ).all()
         )
-        return sorted_places
+        return places
 
 
-def get_nearby_places(
-    user_lat: float, user_long: float, skip: int = 0, limit: int = 10
-):
+def query_places_by_category(category: str, user_id: str):
     with Session(engine) as s:
-        query = text(
-            """
-              SELECT id, latitude, longitude,
-                     ( 6371 * acos( cos( radians(:user_lat) ) 
-                         * cos( radians( latitude ) ) 
-                         * cos( radians( longitude ) - radians(:user_lon) ) 
-                         + sin( radians(:user_lat) ) 
-                         * sin( radians( latitude ) ) ) ) AS distance
-              FROM places
-              ORDER BY distance
-          """
+        user = get_user_by_id(user_id, s)
+        places = list(
+            s.scalars(
+                select(Place).where(Place.category == category)
+                and (Place.city == user.city)
+            ).all()
         )
-        result = list(
-            s.scalars(query, {"user_lat": user_lat, "user_long": user_long}).all()
+        return places
+
+
+def find_by_the_address(address: str, user_id: str):
+    with Session(engine) as s:
+        user = get_user_by_id(user_id, s)
+        places = list(
+            s.scalars(
+                select(Place).where(
+                    Place.street.like(address) and Place.city == user.city
+                )
+            ).all()
         )
-        places = []
-        for place_id in result:
-            place = s.scalars(select(Place).where(Place.id == place_id)).one()
-            places.append(place)
-        return places[skip : limit + skip]
+        return places

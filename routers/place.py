@@ -1,9 +1,4 @@
 from fastapi import APIRouter, Depends, UploadFile
-from services.querying import (
-    search_place_by_name,
-    search_place_by_category,
-    get_nearby_places,
-)
 from services.place import (
     create_place,
     read_place_by_id,
@@ -15,6 +10,12 @@ from services.place import (
     update_place_description,
     update_working_hours,
     get_places_for_the_user,
+)
+from services.querying import (
+    query_places_by_name,
+    query_places_by_category,
+    find_places_by_city,
+    find_by_the_address,
 )
 from utilities.auth import get_user_id
 from typing import Annotated
@@ -44,25 +45,21 @@ def read_users_places(user_id: Annotated[str, Depends(get_user_id)]):
     return {"places": places}
 
 
+@router.get("/query/address")
+def query_by_address(address: str, user_id: Annotated[str, Depends(get_user_id)]):
+    places = find_by_the_address(address, user_id)
+    return {"places": places}
+
+
 @router.get("/query/name")
-def query_by_name(name: str, skip: int = 0, limit: int = 10):
-    places = search_place_by_name(name, skip, limit)
+def query_by_name(name: str, user_id: Annotated[str, Depends(get_user_id)]):
+    places = query_places_by_name(name, user_id)
     return {"places": places}
 
 
 @router.get("/query/category")
-def query_by_category(
-    category: str, skip: int = 0, limit: int = 10, is_desc: bool = True
-):
-    places = search_place_by_category(
-        category, skip=skip, limit=limit, rating_dsc=is_desc
-    )
-    return {"places": places}
-
-
-@router.get("/query/location")
-def query_by_location(lat: float, long: float, skip: int = 0, limit: int = 10):
-    places = get_nearby_places(lat, long, skip, limit)
+def query_by_category(category: str, user_id: Annotated[str, Depends(get_user_id)]):
+    places = query_places_by_category(category, user_id)
     return {"places": places}
 
 
