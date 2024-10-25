@@ -1,9 +1,7 @@
-from utilities.db import Base, engine
+from utilities.db import  engine
 from jwt_token import JWT_SECRET, ALGORITHM
-from sqlalchemy import select, update
-from sqlalchemy.orm import Mapped, mapped_column, Session
-from sqlalchemy import Date
-from sqlalchemy.sql import func
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 from starlette import status
 import bcrypt
 import jwt
@@ -11,15 +9,7 @@ from fastapi import HTTPException, UploadFile
 from uuid import uuid4
 from firebase_admin import  storage
 from firebase_utils import firebase_app
-class User(Base):
-    __tablename__ = "users"
-    id: Mapped[str] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(index=True, unique=True)
-    password: Mapped[str] = mapped_column(nullable=False)
-    username: Mapped[str] = mapped_column(index=True, unique=True)
-    filename: Mapped[str | None] = mapped_column(nullable=True)
-    birth_date = mapped_column(Date, nullable=False)
-    created_at = mapped_column(Date, default=func.now())
+from schemas.user_schema import User
 
 
 #TODO: Finish the firebase storage integration
@@ -111,7 +101,6 @@ async def update_profile_picture(file: UploadFile, uuid: str):
         user.filename = new_file_name
         s.commit()
 
-#TODO: CREATE THE EMAIL AND PASSWORD CHANGE
 async def upload_profile(file: UploadFile | None, uuid: str):
     if file is None:
         return

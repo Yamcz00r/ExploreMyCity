@@ -1,21 +1,11 @@
-from fastapi import APIRouter, HTTPException, UploadFile, Header, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, Depends
 from typing import Annotated
 from starlette import status
-from jwt_token import JWT_SECRET, ALGORITHM
 from services.auth import create_user, authenticate_user, upload_profile, update_profile_picture, update_username, update_email
 from data_models.user import RegisterData, RegisterResponse, LoginResponse, LoginData, UpdateUsernameData, UpdateEmail
-from jwt import decode
+from utilities.auth import get_user_id
 router = APIRouter()
 
-async def get_user_id(authorization: Annotated[str | None, Header()] = None):
-    if authorization is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied")
-    token = authorization.split(" ")[1]
-    try:
-        payload = decode(token, JWT_SECRET, ALGORITHM)
-        return payload["uuid"]
-    except:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Access denied")
 @router.post("/register", response_model=RegisterResponse)
 async def register_user(data: RegisterData):
     user_info = create_user(
