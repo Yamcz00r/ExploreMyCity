@@ -33,7 +33,7 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Virtual environments
-venv/
+server/venv/
 .venv/
 ENV/
 env/
