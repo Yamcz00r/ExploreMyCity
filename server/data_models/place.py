@@ -7,8 +7,6 @@ class PlaceData(BaseModel):
     long: float
     description: str
     website_url: str
-    city: str
-    street: str
     days: str
     category: str
     opening: str

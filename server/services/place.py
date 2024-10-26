@@ -7,7 +7,12 @@ from sqlalchemy import select, delete
 from schemas.place_schema import Place
 from utilities.db import engine
 from uuid import uuid4
-from utilities.utils import get_place_by_id, get_user_by_id, create_tag_if_not_exist
+from utilities.utils import (
+    get_place_by_id,
+    get_user_by_id,
+    create_tag_if_not_exist,
+    get_address_from_coordinates,
+)
 from schemas.tags_schema import Tag, PlacesTags
 
 
@@ -31,6 +36,11 @@ def get_places_for_the_user(user_id: str):
 
 
 def create_place(place_data, uuid):
+    street, city, house_number = get_address_from_coordinates(
+        place_data.lat, place_data.long
+    )
+    street_with_number = f"{street} {house_number}"
+    print(street_with_number)
     with Session(engine) as s:
         tags_to_add = []
         for tag in place_data.tags:
@@ -47,8 +57,8 @@ def create_place(place_data, uuid):
                 name=place_data.name,
                 lat=place_data.lat,
                 long=place_data.long,
-                city=place_data.city,
-                street=place_data.street,
+                city=city,
+                street=street_with_number,
                 author_id=uuid,
                 website_url=place_data.website_url,
                 days=place_data.days,
@@ -69,6 +79,7 @@ def create_place(place_data, uuid):
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Something went wrong",
             )
+
 
 def update_place_name(new_name, place_id, user_id):
     with Session(engine) as s:

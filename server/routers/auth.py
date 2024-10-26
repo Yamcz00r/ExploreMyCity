@@ -12,6 +12,7 @@ async def register_user(data: RegisterData):
         username=data.username,
         password=data.password,
         email=data.email,
+        city=data.city,
         birth_date=data.birth_date,
     )
     if user_info is None:
