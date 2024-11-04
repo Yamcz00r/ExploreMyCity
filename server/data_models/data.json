@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Bar Kormoran",
+    "lat": 50.04563498814623,
+    "long": 19.98274489193467,
+    "category": "Resteurant",
+    "opening": "9:30",
+    "closing": "18:00",
+    "days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+    "website_url": "https://barkormoran.eu",
+    "tags": ["Card payments", "Family friendly", "vege"],
+    "description": "This is the resteurant where you can eat really good polish food with fair prices."
+  },
+  {
+    "name": "Gelato Italia",
+    "lat": 50.047051774463036,
+    "long": 19.97577277215525,
+    "category": "Ice Cream",
+    "opening": "00:00",
+    "closing": "24:00",
+    "days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+    "website_url": "https://gelato-italia.pl",
+    "tags": ["Card payments", "Family friendly", "vege", "Zero waste"],
+    "description": "The best ice creams in your hood."
+  },
+  {
+    "name": "Żabka",
+    "lat": 50.04561361217556,
+    "long":  19.98398984840908,
+    "category": "Groceries",
+    "opening": "6:00",
+    "closing": "23:00",
+    "days": "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday",
+    "website_url": "https://zabka.pl",
+    "tags": ["Card payments", "Family friendly", "vege", "Zero waste", "Alcohol"],
+    "description": "The most popular grocery store in Poland."
+  },
+  {
+    "name": "MR.MEAT Pizza Kebab Burger Kraków Płaszów",
+    "lat": 50.04501566194246,
+    "long":  19.983166291904094,
+    "category": "Fast Food",
+    "opening": "11:00",
+    "closing": "21:00",
+    "days": "Monday,Tuesday,Wednesday,Thursday,Friday",
+    "website_url": "https://mrmeat.pl",
+    "tags": ["Card payments", "Kebab", "Pizza", "Fast Food"],
+    "description": "Good kebab in my hood."
+  }
+]

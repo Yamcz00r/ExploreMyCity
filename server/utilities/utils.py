@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from schemas import place_schema, user_schema, tags_schema
 import math
+from requests import get
 
 
 def generate_uuid() -> str:
@@ -45,6 +46,29 @@ def get_place_by_id(place_id: str, s: Session) -> place_schema.Place:
         )
 
 
+def get_address_from_coordinates(lat: float, lon: float):
+    if lat is None or lon is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You need to provide the coordinates of the place",
+        )
+    try:
+        url = f"https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json"
+        response = get(url, headers={"User-Agent": "macbook-dawid"})
+        if response.ok is False:
+            print(response.status_code, response.text)
+        data = response.json()
+        street = data.get("address", {}).get("road", "")
+        city = data.get("address", {}).get("city", "")
+        house_number = data.get("address", {}).get("house_number", "")
+        return [street, city, house_number]
+    except:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Something went wrong!",
+        )
+
+
 def create_tag_if_not_exist(name: str, s: Session) -> tags_schema.Tag:
     try:
         new_uuid = generate_uuid()
@@ -57,6 +81,3 @@ def create_tag_if_not_exist(name: str, s: Session) -> tags_schema.Tag:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Something went wrong!",
         )
-
-
-# Functions get_user_by_id and get_place_by_id in project are mainly used for checking if the particular instance of it exists in database
